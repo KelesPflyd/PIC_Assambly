@@ -2,19 +2,26 @@ LIST P=16F628A
     INCLUDE "p16f628a.inc"
     __CONFIG _FOSC_INTOSCIO & _WDTE_OFF & _PWRTE_ON & _MCLRE_ON & _BOREN_OFF & _LVP_OFF & _CP_OFF
 
-    ORG 0x00
-    GOTO BASLA
+    ; --- DEĞİŞKEN TANIMLAMALARI ---
+    CBLOCK 0x20
+    SAYAC1
+    SAYAC2
+    SAYAC3
+    ENDC
 
-BASLA
+    ORG 0x00
+    GOTO MAIN
+
+MAIN
     ; Bank 1'e geçiş
     MOVLW   h'20'
     MOVWF   STATUS
 
-    ; PORTA (LED'ler) tamamı çıkış
+    ; PORTA (LED'ler) tamamı çıkış (0)
     MOVLW   h'00'
     MOVWF   TRISA
 
-    ; PORTB: RB0-RB3 Çıkış (Satırlar), RB4-RB7 Giriş (Sütunlar)
+    ; PORTB: RB0-RB3 Çıkış (Satırlar - 0), RB4-RB7 Giriş (Sütunlar - 1)
     MOVLW   h'F0'
     MOVWF   TRISB
 
@@ -123,14 +130,31 @@ TUS_KARE:   MOVLW b'00001111'  ; Kare için 15 (F)
 
 GOSTER
     MOVWF   PORTA           ; W kaydedicisindeki değeri LED'lere aktar
-    CALL    GECIKME         ; LED'in yanık kalması ve ark söndürme için bekle
+    CALL    GECIKME         ; 1 saniye bekle
     MOVLW   h'00'
     MOVWF   PORTA           ; Bekleme bitince LED'leri söndür
     GOTO    ANA_DONGU       ; Yeni tuş için taramaya dön
 
+; --- 1 SANİYELİK GECİKME ALT PROGRAMI ---
 GECIKME
-    ; 1 saniyelik veya ark söndürme gecikme
-    ; alt program kodları buraya yazılacaktır.
-    RETURN
+    MOVLW   d'6'            ; Dıştaki döngü çarpanı
+    MOVWF   SAYAC3
+GEC_DONGU3
+    MOVLW   d'255'          ; Ortadaki döngü çarpanı
+    MOVWF   SAYAC2
+GEC_DONGU2
+    MOVLW   d'255'          ; İçteki döngü çarpanı
+    MOVWF   SAYAC1
+GEC_DONGU1
+    DECFSZ  SAYAC1, F       ; SAYAC1'i 1 azalt, 0 olursa atla
+    GOTO    GEC_DONGU1      ; 0 değilse devam et
+    
+    DECFSZ  SAYAC2, F       ; SAYAC2'yi 1 azalt, 0 olursa atla
+    GOTO    GEC_DONGU2      ; 0 değilse devam et
+    
+    DECFSZ  SAYAC3, F       ; SAYAC3'ü 1 azalt, 0 olursa atla
+    GOTO    GEC_DONGU3      ; 0 değilse devam et
+    
+    RETURN                  ; 1 saniye doldu, çağrıldığı yere geri dön
 
     END
